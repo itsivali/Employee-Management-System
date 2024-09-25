@@ -1,16 +1,12 @@
 import click
 from sqlalchemy.orm import sessionmaker
-from .models import Base, Department, Role, Employee  # Ensure Role is imported
+from .models import Base, Department, Role, Employee
 from .services import (
     add_department, update_department, delete_department, get_all_departments,
     add_role, update_role, delete_role, get_all_roles,
     add_employee, update_employee, delete_employee, get_all_employees
 )
-from .utils import (
-    validate_name, validate_salary,
-    get_all_department_names, get_all_role_titles,
-    get_department_id_by_name, get_role_id_by_name
-)
+from .utils import validate_name, validate_salary
 
 @click.group()
 @click.pass_context
@@ -26,7 +22,6 @@ def cli(ctx):
 @click.pass_context
 def main_menu(ctx):
     """Main Menu"""
-    session = ctx.obj['session']
     while True:
         click.echo("\n--- Main Menu ---")
         click.echo("1. Manage Departments")
@@ -64,16 +59,21 @@ def manage_departments(ctx):
             add_department(session, name)
             click.echo("Department added successfully.")
         elif choice == 2:
-            department_id = click.prompt("Enter department ID to update", type=int)
+            departments = [d.name for d in get_all_departments(session)]
+            old_name = click.prompt("Select department to update", type=click.Choice(departments))
             new_name = click.prompt("Enter new department name", type=str)
-            update_department(session, department_id, new_name)
+            update_department(session, old_name, new_name)
             click.echo("Department updated successfully.")
         elif choice == 3:
-            department_id = click.prompt("Enter department ID to delete", type=int)
-            delete_department(session, department_id)
+            departments = [d.name for d in get_all_departments(session)]
+            name = click.prompt("Select department to delete", type=click.Choice(departments))
+            delete_department(session, name)
             click.echo("Department deleted successfully.")
         elif choice == 4:
-            view_departments(ctx)
+            departments = get_all_departments(session)
+            click.echo("\n--- Departments ---")
+            for dept in departments:
+                click.echo(f"Department: {dept.name}")
         elif choice == 5:
             break
         else:
@@ -96,16 +96,21 @@ def manage_roles(ctx):
             add_role(session, title)
             click.echo("Role added successfully.")
         elif choice == 2:
-            role_id = click.prompt("Enter role ID to update", type=int)
+            roles = [r.title for r in get_all_roles(session)]
+            old_title = click.prompt("Select role to update", type=click.Choice(roles))
             new_title = click.prompt("Enter new role title", type=str)
-            update_role(session, role_id, new_title)
+            update_role(session, old_title, new_title)
             click.echo("Role updated successfully.")
         elif choice == 3:
-            role_id = click.prompt("Enter role ID to delete", type=int)
-            delete_role(session, role_id)
+            roles = [r.title for r in get_all_roles(session)]
+            title = click.prompt("Select role to delete", type=click.Choice(roles))
+            delete_role(session, title)
             click.echo("Role deleted successfully.")
         elif choice == 4:
-            view_roles(ctx)
+            roles = get_all_roles(session)
+            click.echo("\n--- Roles ---")
+            for role in roles:
+                click.echo(f"Role: {role.title}")
         elif choice == 5:
             break
         else:
@@ -125,96 +130,40 @@ def manage_employees(ctx):
 
         if choice == 1:
             name = validate_name(click.prompt("Enter employee name", type=str))
-            department_names = get_all_department_names(session)
-
-            click.echo("\n--- Select a Department ---")
-            for i, dept_name in enumerate(department_names, start=1):
-                click.echo(f"{i}. {dept_name}")
-            dept_index = click.prompt("Select a department by number", type=int) - 1
-            department_id = get_department_id_by_name(session, department_names[dept_index])
-
-            role_titles = get_all_role_titles(session)
-            click.echo("\n--- Select a Role ---")
-            for i, title in enumerate(role_titles, start=1):
-                click.echo(f"{i}. {title}")
-            role_index = click.prompt("Select a role by number", type=int) - 1
-            role_id = get_role_id_by_name(session, role_titles[role_index])
-
+            departments = [d.name for d in get_all_departments(session)]
+            department_name = click.prompt("Select department", type=click.Choice(departments))
+            roles = [r.title for r in get_all_roles(session)]
+            role_title = click.prompt("Select role", type=click.Choice(roles))
             salary = validate_salary(click.prompt("Enter salary", type=float))
-            add_employee(session, name, department_id, role_id, salary)
+            add_employee(session, name, department_name, role_title, salary)
             click.echo("Employee added successfully.")
-
         elif choice == 2:
-            employee_id = click.prompt("Enter employee ID to update", type=int)
-            name = validate_name(click.prompt("Enter new employee name", type=str))
-            department_names = get_all_department_names(session)
-
-            click.echo("\n--- Select a Department ---")
-            for i, dept_name in enumerate(department_names, start=1):
-                click.echo(f"{i}. {dept_name}")
-            dept_index = click.prompt("Select a department by number", type=int) - 1
-            department_id = get_department_id_by_name(session, department_names[dept_index])
-
-            role_titles = get_all_role_titles(session)
-            click.echo("\n--- Select a Role ---")
-            for i, title in enumerate(role_titles, start=1):
-                click.echo(f"{i}. {title}")
-            role_index = click.prompt("Select a role by number", type=int) - 1
-            role_id = get_role_id_by_name(session, role_titles[role_index])
-
+            employees = [e.name for e in get_all_employees(session)]
+            old_name = click.prompt("Select employee to update", type=click.Choice(employees))
+            new_name = validate_name(click.prompt("Enter new employee name", type=str))
+            departments = [d.name for d in get_all_departments(session)]
+            department_name = click.prompt("Select new department", type=click.Choice(departments))
+            roles = [r.title for r in get_all_roles(session)]
+            role_title = click.prompt("Select new role", type=click.Choice(roles))
             salary = validate_salary(click.prompt("Enter new salary", type=float))
-            update_employee(session, employee_id, name, department_id, role_id, salary)
+            update_employee(session, old_name, new_name, department_name, role_title, salary)
             click.echo("Employee updated successfully.")
-
         elif choice == 3:
-            employee_id = click.prompt("Enter employee ID to delete", type=int)
-            delete_employee(session, employee_id)
+            employees = [e.name for e in get_all_employees(session)]
+            name = click.prompt("Select employee to delete", type=click.Choice(employees))
+            delete_employee(session, name)
             click.echo("Employee deleted successfully.")
         elif choice == 4:
-            view_employees(ctx)
+            employees = get_all_employees(session)
+            click.echo("\n--- Employees ---")
+            for emp in employees:
+                department = session.query(Department).filter_by(id=emp.department_id).first()
+                role = session.query(Role).filter_by(id=emp.role_id).first()
+                click.echo(f"Name: {emp.name}, Department: {department.name}, Role: {role.title}, Salary: {emp.salary}")
         elif choice == 5:
             break
         else:
             click.echo("Invalid choice. Please try again.")
 
-def view_departments(ctx):
-    """View Departments"""
-    session = ctx.obj['session']
-    departments = get_all_departments(session)
-    if departments:
-        click.echo("\n--- Departments ---")
-        for dept in departments:
-            click.echo(f"ID: {dept.id}, Name: {dept.name}")
-    else:
-        click.echo("No departments found.")
-
-def view_roles(ctx):
-    """View Roles"""
-    session = ctx.obj['session']
-    roles = get_all_roles(session)
-    if roles:
-        click.echo("\n--- Roles ---")
-        for role in roles:
-            click.echo(f"ID: {role.id}, Title: {role.title}")
-    else:
-        click.echo("No roles found.")
-
-def view_employees(ctx):
-    """View Employees"""
-    session = ctx.obj['session']
-    employees = get_all_employees(session)
-    if employees:
-        click.echo("\n--- Employees ---")
-        for emp in employees:
-            role = session.query(Role).filter_by(id=emp.role_id).first()
-            role_name = role.title if role else "Unknown Role"
-
-            department = session.query(Department).filter_by(id=emp.department_id).first()
-            department_name = department.name if department else "Unknown Department"
-
-            click.echo(f"ID: {emp.id}, Name: {emp.name}, Salary: {emp.salary}, Department: {department_name}, Role: {role_name}")
-    else:
-        click.echo("No employees found.")
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     cli()
