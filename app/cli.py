@@ -1,6 +1,6 @@
 import click
 from sqlalchemy.orm import sessionmaker
-from .models import Base
+from .models import Base, Department, Role, Employee  # Ensure Role is imported
 from .services import (
     add_department, update_department, delete_department, get_all_departments,
     add_role, update_role, delete_role, get_all_roles,
@@ -206,10 +206,13 @@ def view_employees(ctx):
     if employees:
         click.echo("\n--- Employees ---")
         for emp in employees:
-            # Fetching role name based on role_id
             role = session.query(Role).filter_by(id=emp.role_id).first()
             role_name = role.title if role else "Unknown Role"
-            click.echo(f"ID: {emp.id}, Name: {emp.name}, Salary: {emp.salary}, Department ID: {emp.department_id}, Role: {role_name}")
+
+            department = session.query(Department).filter_by(id=emp.department_id).first()
+            department_name = department.name if department else "Unknown Department"
+
+            click.echo(f"ID: {emp.id}, Name: {emp.name}, Salary: {emp.salary}, Department: {department_name}, Role: {role_name}")
     else:
         click.echo("No employees found.")
 
